@@ -1,0 +1,31 @@
+[project]
+name = "secureaiops"
+version = "2.0.0"
+description = "Agentic SOC copilot: guarded multi-agent triage, MITRE ATT&CK mapping, explainable risk and policy-grounded RAG."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+keywords = ["cybersecurity", "soc", "llm", "agents", "langgraph", "mitre-attack", "guardrails", "rag"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+extend-exclude = [".venv", "data"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "BLE", "UP", "S", "SIM", "RUF"]
+ignore = ["SIM905", "S101", "E501", "RUF001", "RUF002", "RUF003", "RUF012", "SIM108"]
+
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Query", "fastapi.Header", "fastapi.Security"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S105", "S106"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+filterwarnings = ["ignore::DeprecationWarning", "ignore::PendingDeprecationWarning"]
+
+[tool.bandit]
+exclude_dirs = ["tests", ".venv"]

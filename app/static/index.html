@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SecureAIOps · Agentic SOC Copilot</title>
+  <meta name="description" content="Guarded multi-agent SOC triage: AI firewall, ATT&CK mapping, explainable risk and policy-grounded RAG.">
+  <link rel="icon" type="image/svg+xml" href="/static/img/logo.svg">
+  <link rel="stylesheet" href="/static/css/app.css">
+  <script src="/static/js/app.js" defer></script>
+</head>
+<body>
+<div class="shell">
+  <!-- ================================================================ Sidebar -->
+  <aside class="sidebar" aria-label="Primary">
+    <a class="brand" href="#console">
+      <img src="/static/img/logo.svg" alt="" width="34" height="34">
+      <span><strong>SecureAIOps</strong><small>Agentic SOC Copilot</small></span>
+    </a>
+    <nav class="nav">
+      <a href="#console" data-view="console" class="active">
+        <svg viewBox="0 0 24 24"><path d="M4 5h16v11H4zM8 20h8M12 16v4"/></svg><span>Console</span></a>
+      <a href="#incidents" data-view="incidents">
+        <svg viewBox="0 0 24 24"><path d="M12 3 3 20h18L12 3zM12 10v4M12 17h.01"/></svg><span>Incidents</span>
+        <em class="nav-count" id="navIncidentCount">0</em></a>
+      <a href="#knowledge" data-view="knowledge">
+        <svg viewBox="0 0 24 24"><path d="M4 4h10a4 4 0 0 1 4 4v12H8a4 4 0 0 1-4-4zM18 20V8"/></svg><span>Knowledge</span></a>
+      <a href="#architecture" data-view="architecture">
+        <svg viewBox="0 0 24 24"><path d="M12 3v4M5 12H3m18 0h-2M7 7 5.5 5.5m11.5 1.5 1.5-1.5M8 12a4 4 0 1 0 8 0 4 4 0 0 0-8 0zM12 16v5"/></svg><span>Architecture</span></a>
+    </nav>
+    <div class="sidebar-foot">
+      <div class="posture">
+        <div class="posture-title">Security posture</div>
+        <ul>
+          <li><i class="ok"></i>AI firewall · <b id="metaRules">–</b> rules</li>
+          <li><i class="ok"></i>Output DLP + canary</li>
+          <li><i class="ok"></i>Human approval gates</li>
+          <li><i id="authDot"></i><span id="authLabel">API auth</span></li>
+        </ul>
+      </div>
+      <div class="version" id="metaVersion">v–</div>
+    </div>
+  </aside>
+
+  <!-- ================================================================ Main -->
+  <div class="main">
+    <header class="topbar">
+      <div class="topbar-title">
+        <h1 id="viewTitle">Investigation Console</h1>
+        <p id="viewSubtitle">Paste a log, alert, IOC list or policy question — the agent graph triages it end-to-end.</p>
+      </div>
+      <div class="pills">
+        <span class="pill" title="Reasoning engine"><i class="dot" id="healthDot"></i><span id="metaEngine">connecting…</span></span>
+        <span class="pill hide-sm" title="Retrieval backend"><svg viewBox="0 0 24 24"><path d="M4 6c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3zm0 0v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg><span id="metaKb">–</span></span>
+        <button class="pill btn-ghost" id="apiKeyBtn" type="button" hidden>
+          <svg viewBox="0 0 24 24"><path d="M15 7a4 4 0 1 1-3.5 6L4 20.5V17h3v-3h3l1.5-1.5A4 4 0 0 1 15 7z"/></svg>API key</button>
+      </div>
+    </header>
+
+    <!-- ============================================================ Console -->
+    <section class="view active" id="view-console">
+      <div class="kpis">
+        <div class="kpi"><span>Analyses</span><strong id="kpiTotal">0</strong><small>audit-logged</small></div>
+        <div class="kpi kpi-danger"><span>Attacks blocked</span><strong id="kpiBlocked">0</strong><small>by AI firewall</small></div>
+        <div class="kpi kpi-warn"><span>High / Critical</span><strong id="kpiHigh">0</strong><small>need response</small></div>
+        <div class="kpi"><span>Avg. latency</span><strong id="kpiLatency">0<em>ms</em></strong><small>end-to-end</small></div>
+      </div>
+
+      <div class="console-grid">
+        <div class="col-left">
+          <div class="card">
+            <div class="card-head">
+              <h2>Investigation input</h2>
+              <span class="hint"><kbd>Ctrl</kbd>+<kbd>Enter</kbd></span>
+            </div>
+            <div class="scenarios" id="scenarios" aria-label="Sample scenarios"></div>
+            <label class="sr-only" for="input">Security input</label>
+            <textarea id="input" spellcheck="false" placeholder="e.g. sshd[2211]: Failed password for root from 185.220.101.4 port 52144 ssh2"></textarea>
+            <div class="input-foot">
+              <span class="muted mono" id="charCount">0 chars</span>
+              <div class="input-actions">
+                <button class="btn btn-ghost" id="clearBtn" type="button">Clear</button>
+                <button class="btn btn-primary" id="analyzeBtn" type="button">
+                  <svg viewBox="0 0 24 24"><path d="m5 12 5 5L20 7"/></svg><span>Analyze</span></button>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head">
+              <h2>Agent pipeline</h2>
+              <span class="muted mono" id="pipelineTotal">idle</span>
+            </div>
+            <ol class="pipeline" id="pipeline"></ol>
+          </div>
+        </div>
+
+        <div class="col-right" id="reportPane">
+          <div class="empty" id="emptyState">
+            <div class="empty-art" aria-hidden="true">
+              <img src="/static/img/logo.svg" alt="" width="64" height="64">
+              <span class="ring r1"></span><span class="ring r2"></span><span class="ring r3"></span>
+            </div>
+            <h3>Ready to investigate</h3>
+            <p>Pick a scenario or paste telemetry. Each request flows through an AI firewall, a triage supervisor, parallel enrichment agents, a specialist analyst and an output guard.</p>
+            <div class="empty-badges">
+              <span>OWASP LLM Top 10 guardrails</span><span>MITRE ATT&amp;CK</span><span>NIST SP 800-61</span><span>Human-in-the-loop</span>
+            </div>
+          </div>
+          <div id="report" hidden></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ Incidents -->
+    <section class="view" id="view-incidents">
+      <div class="card">
+        <div class="card-head">
+          <h2>Incident audit trail</h2>
+          <div class="filters" id="sevFilters">
+            <button class="chip active" data-sev="ALL">All</button>
+            <button class="chip sev-CRITICAL" data-sev="CRITICAL">Critical</button>
+            <button class="chip sev-HIGH" data-sev="HIGH">High</button>
+            <button class="chip sev-MEDIUM" data-sev="MEDIUM">Medium</button>
+            <button class="chip sev-LOW" data-sev="LOW">Low</button>
+            <button class="chip sev-INFO" data-sev="INFO">Info</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="table" id="incidentTable">
+            <thead><tr><th>#</th><th>Time</th><th>Severity</th><th>Title</th><th>Agent</th><th class="num">Risk</th><th class="num">Latency</th></tr></thead>
+            <tbody></tbody>
+          </table>
+          <p class="muted pad" id="incidentEmpty">No incidents yet — run an analysis from the console.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ Knowledge -->
+    <section class="view" id="view-knowledge">
+      <div class="kb-grid">
+        <div class="card">
+          <div class="card-head"><h2>Semantic search</h2><span class="muted" id="kbBackend"></span></div>
+          <form class="search" id="kbForm">
+            <svg viewBox="0 0 24 24"><path d="m21 21-4.3-4.3M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15z"/></svg>
+            <input id="kbQuery" type="search" placeholder="e.g. SSH bastion access, privileged group changes, ransomware" autocomplete="off">
+          </form>
+          <div id="kbResults" class="kb-results"></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h2>Indexed policies</h2></div>
+          <ul class="doc-list" id="kbDocs"></ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ Architecture -->
+    <section class="view" id="view-architecture">
+      <div class="card">
+        <div class="card-head"><h2>Agent graph (LangGraph)</h2><span class="muted">deterministic enrichment · probabilistic reasoning</span></div>
+        <div class="arch">
+          <div class="arch-row"><div class="arch-node n-guard"><b>AI Firewall</b><small>heuristics + LLM adjudicator</small></div></div>
+          <div class="arch-arrow">▼ allowed <span class="arch-branch">blocked ▶ terminate + audit</span></div>
+          <div class="arch-row"><div class="arch-node n-sup"><b>Triage Supervisor</b><small>structured routing</small></div></div>
+          <div class="arch-arrow">▼ parallel fan-out</div>
+          <div class="arch-row three">
+            <div class="arch-node n-enrich"><b>IOC Extractor</b><small>refang · classify</small></div>
+            <div class="arch-node n-enrich"><b>ATT&amp;CK Mapper</b><small>technique evidence</small></div>
+            <div class="arch-node n-enrich"><b>Knowledge Retriever</b><small>BM25 / pgvector</small></div>
+          </div>
+          <div class="arch-arrow">▼ join</div>
+          <div class="arch-row"><div class="arch-node n-risk"><b>Risk Engine</b><small>explainable additive score</small></div></div>
+          <div class="arch-arrow">▼ route</div>
+          <div class="arch-row three">
+            <div class="arch-node n-spec"><b>SOC Analyst</b><small>triage &amp; response</small></div>
+            <div class="arch-node n-spec"><b>Threat Intel</b><small>TTPs &amp; detection</small></div>
+            <div class="arch-node n-spec"><b>Compliance Auditor</b><small>policy-grounded</small></div>
+          </div>
+          <div class="arch-arrow">▼</div>
+          <div class="arch-row"><div class="arch-node n-guard"><b>Output Guard</b><small>DLP redaction · canary leak check</small></div></div>
+          <div class="arch-arrow">▼</div>
+          <div class="arch-row"><div class="arch-node n-human"><b>Analyst approval</b><small>containment actions are gated</small></div></div>
+        </div>
+      </div>
+      <div class="controls-grid">
+        <div class="card control"><h3>LLM01 · Prompt injection</h3><p>Normalised, rule-based firewall (leetspeak, zero-width, base64 views) + LLM intent adjudication. Per-request random boundary tags (“spotlighting”) prevent delimiter breakout.</p></div>
+        <div class="card control"><h3>LLM02 · Sensitive disclosure</h3><p>Output DLP redacts keys, tokens, private keys, card numbers and credentials before anything reaches the analyst.</p></div>
+        <div class="card control"><h3>LLM06 · Excessive agency</h3><p>Agents are read-only. Every state-changing action is marked <code>requires_approval</code> and recorded with the approver in the audit log.</p></div>
+        <div class="card control"><h3>LLM07 · Prompt leakage</h3><p>A per-process canary token is embedded in system prompts; any response containing it is withheld.</p></div>
+        <div class="card control"><h3>LLM08 · Poisoned retrieval</h3><p>Retrieved passages are spotlighted as untrusted data — documents cannot issue instructions to the model.</p></div>
+        <div class="card control"><h3>API hardening</h3><p>Constant-time API-key auth, rate limiting, strict CSP &amp; security headers, bounded inputs, no error leakage, request correlation IDs.</p></div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<dialog id="keyDialog">
+  <form method="dialog" class="dialog">
+    <h3>API key required</h3>
+    <p class="muted">This server enforces API-key authentication. The key is kept in this tab's session storage only.</p>
+    <input id="keyInput" type="password" autocomplete="off" placeholder="X-API-Key">
+    <div class="dialog-actions"><button class="btn btn-ghost" value="cancel">Cancel</button><button class="btn btn-primary" value="ok" id="keySave">Save</button></div>
+  </form>
+</dialog>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>

@@ -1,0 +1,46 @@
+# Production-like stack: API + PostgreSQL/pgvector.
+#   cp .env.example .env   # set POSTGRES_PASSWORD, API_KEYS, GEMINI_API_KEY
+#   docker compose up -d --build
+name: secureaiops
+
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: secureaiops
+      POSTGRES_DB: secureaiops
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    # Bound to loopback only: the database is never exposed on the network.
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U secureaiops -d secureaiops"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  api:
+    build: .
+    env_file: .env
+    environment:
+      APP_ENV: production
+      DATABASE_URL: postgresql+psycopg2://secureaiops:${POSTGRES_PASSWORD}@db:5432/secureaiops
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8000:8000"
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    restart: unless-stopped
+
+volumes:
+  pgdata:
