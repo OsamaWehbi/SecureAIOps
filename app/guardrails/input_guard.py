@@ -23,7 +23,7 @@ import secrets
 import unicodedata
 from dataclasses import asdict, dataclass, field
 
-_ZERO_WIDTH = re.compile(r"[​-‏‪-‮⁠-⁤﻿]")
+_ZERO_WIDTH = re.compile(r"[\u200b-\u200f\u202a-\u202e\u2060-\u2064\ufeff]")
 _LEET = str.maketrans({"0": "o", "1": "i", "3": "e", "4": "a", "5": "s", "7": "t", "@": "a", "$": "s"})
 _B64_BLOB = re.compile(r"[A-Za-z0-9+/]{24,}={0,2}")
 
