@@ -11,3 +11,7 @@ updates:
   - package-ecosystem: docker
     directory: /
     schedule: { interval: monthly }
+    ignore:
+      # Stay on the Python minor version CI tests; new minors often lack wheels at first.
+      - dependency-name: python
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
