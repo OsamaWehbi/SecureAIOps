@@ -7,7 +7,7 @@
 **An agentic SOC copilot that triages security telemetry with a guarded multi-agent graph.**
 It includes an AI firewall, MITRE ATT&CK mapping, explainable risk scoring, policy-grounded RAG and human approval gates.
 
-[![CI](https://img.shields.io/badge/CI-GitHub_Actions-2088FF?logo=githubactions&logoColor=white)](.github/workflows/ci.yml)
+[![CI](https://github.com/OsamaWehbi/SecureAIOps/actions/workflows/ci.yml/badge.svg)](https://github.com/OsamaWehbi/SecureAIOps/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/Python-3.11%20%7C%203.12-3776AB?logo=python&logoColor=white)
 ![LangGraph](https://img.shields.io/badge/LangGraph-multi--agent-1C3C3C)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
